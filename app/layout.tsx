@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Vivo Health - Lab Report Analysis & Health Platform",
+  title: "Medical Report AI",
   description: "AI-powered lab report analysis, health chatbot, and secure notes for better health literacy",
 };
 
