@@ -449,9 +449,9 @@ export default function LabReportsPage() {
                       No structured test results found. Raw text available
                       below.
                     </p>
-                  )}
 
-                  {selectedReport.ai_analysis && (
+                  )}
+{ selectedReport.ai_analysis && (
                     <div className="mt-6 pt-6 border-t">
                       <h4 className="font-semibold mb-2">AI Analysis</h4>
                       <div className="rounded-lg border p-4 bg-muted/50 whitespace-pre-wrap text-sm">
@@ -463,6 +463,12 @@ export default function LabReportsPage() {
                       </div>
                     </div>
                   )}
+
+
+
+
+
+
                 </CardContent>
               </Card>
 
