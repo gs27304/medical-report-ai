@@ -4,7 +4,7 @@
 export function cleanMarkdown(text: string): string {
   if (!text) return "";
 
-  return text
+  return (text
     // Remove markdown headers (# ## ###)
     .replace(/^#{1,6}\s+/gm, "")
     // Remove bold/italic markers (**text** -> text, *text* -> text)
@@ -18,7 +18,8 @@ export function cleanMarkdown(text: string): string {
     .replace(/\s{2,}/g, " ")
     // Clean up multiple newlines (keep max 2)
     .replace(/\n{3,}/g, "\n\n")
-    .trim();
+    .trim()
+  );
 }
 
 /**

@@ -62,7 +62,7 @@ export default function AuthPage() {
     setError(null);
     try {
       const { error } = await supabase.auth.signUp({
-        email,
+        email, 
         password,
       });
       if (error) throw error;
@@ -100,7 +100,7 @@ export default function AuthPage() {
 
   const handleGmailSignIn = async () => {
     if (!supabase) return;
-    setLoading(true);
+    setLoading(true);  
     setError(null);
     try {
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
