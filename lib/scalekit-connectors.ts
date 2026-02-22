@@ -64,5 +64,5 @@ export async function handleConnectorCallback(
  */
 export const CONNECTOR_IDS = {
   GMAIL: process.env.SCALEKIT_GMAIL_CONNECTION_ID || "gmail",
-  SLACK: process.env.SCALEKIT_SLACK_CONNECTION_ID || "slack",
+ 
 } as const;
