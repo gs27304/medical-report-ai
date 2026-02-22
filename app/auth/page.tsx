@@ -220,7 +220,7 @@ export default function AuthPage() {
                 disabled={loading}
               >
                 <Mail className="mr-2 h-4 w-4" />
-                Continue with Gmail
+                Continue with Google
               </Button>
 
               <div className="relative">
