@@ -42,6 +42,12 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
 >
   Lab Reports
 </Link>
+<Link
+  href="/how"
+  className="px-4 py-2 text-sm font-medium text-gray-600 transition-all duration-200 rounded-md hover:text-blue-600 hover:bg-blue-50 active:scale-95"
+>
+  How it works ?
+</Link>
           </nav>
 
           <div className="ml-auto">
