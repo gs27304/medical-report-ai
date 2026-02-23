@@ -177,7 +177,7 @@ export default function AuthPage() {
     <div className="min-h-screen flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Sign in to Vivo Health</CardTitle>
+          <CardTitle>Sign in to PathoLens </CardTitle>
           <CardDescription>
             Access your lab reports, health notes, and AI assistant
           </CardDescription>
