@@ -18,7 +18,9 @@ An intelligent health platform that deciphers clinical lab reports into plain En
 
 ##  Live Demo Link
 
-[View Live Project](https://medical-report-ai-nu.vercel.app/)
+<a href="https://medical-report-ai-nu.vercel.app/" target="_blank">
+  View Live Project
+</a>
 
 ##  Preview Section
 
