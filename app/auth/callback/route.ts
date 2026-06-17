@@ -10,8 +10,13 @@ export async function GET(request: NextRequest) {
   const code = requestUrl.searchParams.get("code");
 
   if (code && supabaseUrl && supabaseAnonKey) {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+     const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+  const { data, error } =
     await supabase.auth.exchangeCodeForSession(code);
+
+  console.log("EXCHANGE RESULT:", data);
+  console.log("EXCHANGE ERROR:", error);
   }
 
   // Redirect to home page after successful auth

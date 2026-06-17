@@ -103,24 +103,40 @@ export async function analyzeLabReportPdfFromBuffer(
   const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
   const base64Pdf = pdfBuffer.toString("base64");
 
-  const prompt = `You are a clinical assistant helping patients understand lab test results in PDF form.
+  // const prompt = `You are a clinical assistant helping patients understand lab test results in PDF form.
+  const prompt = `Act as an expert clinical AI health analyst: thoroughly analyze my lab report, explain all findings in simple language, highlight abnormalities and risks, assess possible deficiencies or conditions, and provide personalized evidence-based diet, lifestyle, supplement considerations, follow-up tests, and an actionable health improvement plan while clearly distinguishing observations from medical diagnoses.
 
 FILE NAME: ${fileName || "Lab report PDF"}
 
 TASKS:
 1. Carefully read the entire lab report PDF, including any tables and reference ranges.
 2. Summarize the overall picture in simple, reassuring language.
-3. Call out any clearly abnormal values and what they might mean in broad terms (no diagnoses).
-4. Group results into sections (for example: blood counts, kidney function, liver function, cholesterol, glucose, etc.) when possible.
+3. Identify and Call out any abnormal, borderline, and critical values by comparing them with the provided reference ranges and what they might mean in broad terms (no diagnoses).
+4. Group findings into relevant medical categories whenever possible:
+   - Complete Blood Count (CBC)
+   - Kidney Function
+   - Liver Function
+   - Blood Sugar / Diabetes
+   - Lipid Profile
+   - Thyroid Function
+   - Electrolytes
+   - Vitamins & Minerals
+   - Urine Analysis
+   - Blood Gas Analysis
+   - Infection Markers
+   - Other Tests
 5. Suggest 3-5 specific follow-up questions the patient could ask their clinician.
 6. Use short paragraphs and bullet points. Do NOT give treatment plans, prescriptions, or specific medical diagnoses.
-7. Always include a short disclaimer reminding the patient to discuss results with their clinician.
+7. Highlight important patterns and relationships between results when relevant.
+8. Always include a short disclaimer reminding the patient to discuss results with their clinician.
 
 IMPORTANT FORMATTING:
-- Do NOT use markdown formatting (no asterisks, hashtags, or backticks)
-- Use plain text only
-- Use line breaks and simple dashes for bullet points
-- Keep formatting clean and readable`;
+- Use ## headings for sections.
+- Use **bold** for abnormal test names.
+- Use **bold** for numerical values.
+- Use 🔴 before abnormal values.
+- Use 🟢 before normal findings.
+- Use bullet points`;
 
   const result = await model.generateContent({
     contents: [
@@ -141,6 +157,104 @@ IMPORTANT FORMATTING:
 
   const response = await result.response;
   return response.text();
+}
+// Extract raw text from a PDF buffer
+export async function extractRawTextFromPdfBuffer(
+  pdfBuffer: Buffer,
+  fileName?: string
+): Promise<string> {
+
+  if (!genAI) {
+    throw new Error("Gemini client not initialized");
+  }
+
+  const model = genAI.getGenerativeModel({
+    model: "gemini-2.5-flash",
+  });
+
+  const base64Pdf = pdfBuffer.toString("base64");
+
+  const result = await model.generateContent({
+    contents: [
+      {
+        role: "user",
+        parts: [
+          {
+            text: `
+Read this PDF lab report.
+
+Extract ALL report text exactly as it appears.
+
+Rules:
+- Return only extracted text
+- No summaries
+- No explanations
+- No markdown
+- Preserve values and tables as closely as possible
+            `,
+          },
+          {
+            inlineData: {
+              mimeType: "application/pdf",
+              data: base64Pdf,
+            },
+          },
+        ],
+      },
+    ],
+  });
+
+  return result.response.text();
+}
+// Extract structured data from lab report raw text using Gemini JSON output
+export async function extractStructuredData(rawText: string): Promise<LabReportContext["structuredData"] | null> {
+  if (!genAI) {
+    throw new Error("Gemini client not initialized. Set GEMINI_API_KEY.");
+  }
+
+  if (!rawText || rawText.trim().length === 0) {
+    return null;
+  }
+
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+  const prompt = `Analyze the following raw lab report text and extract the structured data.
+You must return a JSON object that matches the following schema:
+
+{
+  "patientName": string (optional, name of the patient),
+  "date": string (optional, date of the test in YYYY-MM-DD or other format),
+  "testType": string (optional, type of the test, e.g., "Complete Blood Count", "Lipid Panel", "Metabolic Panel", "General Lab Report"),
+  "testResults": Array of {
+    "name": string (name of the test/parameter, e.g. "Hemoglobin", "Cholesterol", "TSH"),
+    "value": string (numeric or string value of the test, e.g. "14.2", "Negative", "Normal"),
+    "unit": string (optional, unit of measurement, e.g. "g/dL", "mg/dL", "mIU/L"),
+    "referenceRange": string (optional, reference range, e.g. "13.5 - 17.5", "< 200"),
+    "status": string (optional, must be exactly one of: "normal", "high", "low", "critical")
+  }
+}
+
+Be extremely accurate. Identify whether each result is within or outside its reference range to determine the status. If a reference range is not provided, classify the status as "normal", "high", "low", or "critical" based on general medical reference norms, or omit the status/set to "normal" if unknown.
+
+RAW LAB REPORT TEXT:
+${rawText}
+`;
+
+  try {
+    const result = await model.generateContent({
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: {
+        responseMimeType: "application/json",
+      }
+    });
+
+    const response = await result.response;
+    const jsonText = response.text();
+    return JSON.parse(jsonText) as LabReportContext["structuredData"];
+  } catch (error) {
+    console.error("Failed to extract structured data from lab report:", error);
+    return null;
+  }
 }
 
 // Chat with a lab report using raw text and AI analysis

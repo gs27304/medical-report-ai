@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { analyzeLabReportPdfFromBuffer } from "@/lib/gemini";
+import { analyzeLabReportPdfFromBuffer, extractStructuredData, extractRawTextFromPdfBuffer } from "@/lib/gemini";
+// import { PDFParse } from 'pdf-parse';
+
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -90,6 +92,72 @@ export async function POST(req: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
+    // Extract raw text using pdf-parse
+
+
+//    let rawText = "";
+
+// try {
+
+//   const parser = new PDFParse({
+//     data: buffer,
+//   });
+
+//   const result = await parser.getText();
+
+//   rawText = result.text || "";
+
+//   await parser.destroy();
+
+//   console.log(
+//     `Extracted raw text (${rawText.length} characters)`
+//   );
+
+// } catch (error: any) {
+
+//   console.error(
+//     "PDF text extraction failed:",
+//     error
+//   );
+
+//   rawText = "Failed to extract text from PDF";
+// }
+
+// Extract raw text using Gemini's PDF extraction for better accuracy
+let rawText = "";
+
+try {
+
+  rawText = await extractRawTextFromPdfBuffer(
+    buffer,
+    fileName || file.name
+  );
+
+  console.log(
+    `Gemini extracted ${rawText.length} characters`
+  );
+
+} catch (error) {
+
+  console.error(
+    "Gemini text extraction failed:",
+    error
+  );
+
+  rawText = "";
+}
+
+    // Extract structured data from the raw text using Gemini
+    let structuredData: any = null;
+    if (rawText && rawText !== "Failed to extract text from PDF") {
+      try {
+        structuredData = await extractStructuredData(rawText);
+        console.log("Extracted structured data successfully:", JSON.stringify(structuredData));
+      } catch (error: any) {
+        console.error("Structured data extraction failed:", error);
+      }
+    }
+
     // Analyze PDF with Gemini (using the PDF buffer for visual analysis)
     let aiAnalysis: string | null = null;
     try {
@@ -97,7 +165,7 @@ export async function POST(req: NextRequest) {
         buffer,
         fileName || file.name
       );
-      console.log(`Generated AI analysis (${aiAnalysis.length} characters)`);
+      console.log(`Generated AI analysis (${aiAnalysis?.length || 0} characters)`);
     } catch (error: any) {
       console.error("AI analysis failed:", error);
       // Continue even if analysis fails - we'll store the report with raw text
@@ -109,9 +177,8 @@ export async function POST(req: NextRequest) {
       .insert({
         user_id: userId,
         file_name: fileName || file.name,
-        // We are currently not storing extracted raw text from the PDF
-        raw_text: "PDF text extraction not enabled",
-        structured_data: null,
+        raw_text: rawText || "No text content found in PDF",
+        structured_data: structuredData,
         ai_analysis: aiAnalysis,
         uploaded_at: new Date().toISOString(),
       })
@@ -133,7 +200,7 @@ export async function POST(req: NextRequest) {
         fileName: labReport.file_name,
         uploadedAt: labReport.uploaded_at,
         aiAnalysis: labReport.ai_analysis,
-        rawTextLength: 0,
+        rawTextLength: rawText.length,
       },
     });
   } catch (error: any) {

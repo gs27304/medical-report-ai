@@ -56,6 +56,8 @@ export default function LabReportsPage() {
   const [selectedReport, setSelectedReport] = useState<LabReport | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  const [activeTab, setActiveTab] = useState("overview");
+
   const copyAnalysis = async (text: string, id: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -98,6 +100,9 @@ export default function LabReportsPage() {
   useEffect(() => {
     fetchLabReports();
   }, [fetchLabReports]);
+  useEffect(() => {
+  console.log("SELECTED REPORT:", selectedReport);
+}, [selectedReport]);
 
   const handleDelete = async (reportId: string) => {
     if (!supabase) return;
@@ -146,7 +151,11 @@ export default function LabReportsPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-4">
+      <Tabs
+  value={activeTab}
+  onValueChange={setActiveTab}
+  className="space-y-4"
+>
         <TabsList className="bg-slate-100 p-1">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="reports">Recent Reports</TabsTrigger>
@@ -209,7 +218,7 @@ export default function LabReportsPage() {
           <LabGeminiPanel />
         </TabsContent>
 
-        <TabsContent value="reports" className="space-y-4">
+       <TabsContent value="reports" className="space-y-4">
           <Card className="border-none shadow-sm">
             <CardHeader><CardTitle>Recent Lab Reports</CardTitle></CardHeader>
             <CardContent>
@@ -226,7 +235,25 @@ export default function LabReportsPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="sm" onClick={() => setSelectedReport(report)} className="font-bold text-blue-600 hover:text-blue-700">View</Button>
+                      {/* <Button variant="ghost" size="sm" onClick={() => {
+  console.log("VIEW CLICKED");
+  console.log(report);
+  setSelectedReport(report);
+}} className="font-bold text-blue-600 hover:text-blue-700">View</Button> */}
+<Button
+  variant="ghost"
+  size="sm"
+  onClick={() => {
+    console.log("VIEW CLICKED");
+    console.log(report);
+
+    setSelectedReport(report);
+    setActiveTab("analysis");
+  }}
+  className="font-bold text-blue-600 hover:text-blue-700"
+>
+  View
+</Button>
                       <Button variant="ghost" size="sm" onClick={() => handleDelete(report.id)} className="text-slate-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></Button>
                     </div>
                   </div>
@@ -236,7 +263,7 @@ export default function LabReportsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="analysis" className="space-y-4">
+       <TabsContent value="analysis" className="space-y-4">
           {selectedReport ? (
             <div className="space-y-6">
               <Card className="border-none shadow-lg">
