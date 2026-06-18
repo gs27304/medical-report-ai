@@ -58,11 +58,24 @@ console.log("SERVICE KEY:", !!supabaseServiceKey);
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     console.log("Supabase initialized");
     // Check if user exists
-    const { data: existingUser , error: userError} = await supabase
-      .from("auth.users")
-      .select("id")
-      .eq("email", result.user.email)
-      .single();
+    // const { data: existingUser , error: userError} = await supabase
+    //   .from("auth.users")
+    //   .select("id")
+    //   .eq("email", result.user.email)
+    //   .single();
+
+    const { data: users, error: listError } =
+  await supabase.auth.admin.listUsers();
+
+if (listError) {
+  console.error("List users error:", listError);
+}
+
+const existingUser = users?.users?.find(
+  (u) => u.email === result.user.email
+);
+
+console.log("existingUser:", existingUser);
 
       console.log("existingUser:", existingUser);
 console.log("userError:", userError);
