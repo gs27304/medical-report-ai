@@ -52,17 +52,22 @@ export async function GET(request: NextRequest) {
         (result as any).organizationId || (result as any).organization_id,
     });
 
-    // Create or update user in Supabase
-    console.log("SUPABASE URL:", !!supabaseUrl);
+// Create or update user in Supabase
+console.log("SUPABASE URL:", !!supabaseUrl);
 console.log("SERVICE KEY:", !!supabaseServiceKey);
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    console.log("Supabase initialized");
-  
-    const { data: users, error: listError } =
+
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+console.log("Supabase initialized");
+
+const { data: users, error: listError } =
   await supabase.auth.admin.listUsers();
 
+console.log("LIST USERS RESULT:", users);
+console.log("LIST USERS ERROR:", listError);
+
 if (listError) {
-  console.error("List users error:", listError);
+  throw new Error(`Failed to list users: ${listError.message}`);
 }
 
 const existingUser = users?.users?.find(
@@ -71,50 +76,137 @@ const existingUser = users?.users?.find(
 
 console.log("existingUser:", existingUser);
 
-      console.log("existingUser:", existingUser);
+let userId: string;
+
+console.log("STEP 1 - before user check");
+
+if (existingUser) {
+  console.log("STEP 2 - existing user found");
+
+  userId = existingUser.id;
+
+  console.log("STEP 3 - existing userId:", userId);
+} else {
+  console.log("STEP 2 - creating new user");
+
+  const { data: newUser, error: createError } =
+    await supabase.auth.admin.createUser({
+      email: result.user.email,
+      email_confirm: true,
+      user_metadata: {
+        full_name: result.user.name,
+        organization_id:
+          (result as any).organizationId ||
+          (result as any).organization_id,
+        sso_provider: "scalekit",
+      },
+    });
+
+  console.log("CREATE USER RESULT:", newUser);
+  console.log("CREATE USER ERROR:", createError);
+
+  if (createError || !newUser?.user) {
+    throw new Error(
+      createError?.message || "Failed to create user"
+    );
+  }
+
+  userId = newUser.user.id;
+
+  console.log("STEP 3 - new userId:", userId);
+}
+
+console.log("STEP 4 - final userId:", userId);
+
+console.log("STEP 5 - generating magic link");
+
+const { data: sessionData, error: sessionError } =
+  await supabase.auth.admin.generateLink({
+    type: "magiclink",
+    email: result.user.email,
+  });
+
+console.log("GENERATE LINK RESULT:", sessionData);
+console.log("GENERATE LINK ERROR:", sessionError);
+
+if (sessionError || !sessionData) {
+  throw new Error(
+    sessionError?.message || "Failed to generate magic link"
+  );
+}
+
+console.log("STEP 6 - magic link generated");
 
 
-    let userId: string;
+    // Create or update user in Supabase
+//     console.log("SUPABASE URL:", !!supabaseUrl);
+// console.log("SERVICE KEY:", !!supabaseServiceKey);
+//     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+//     console.log("Supabase initialized");
+  
+//     const { data: users, error: listError } =
+//   await supabase.auth.admin.listUsers();
 
-    if (existingUser) {
-      userId = existingUser.id;
-    } else {
-      // Create new user
-      const { data: newUser, error: createError } =
-        await supabase.auth.admin.createUser({
-          email: result.user.email,
-          email_confirm: true,
-          user_metadata: {
-            full_name: result.user.name,
-            organization_id:
-              (result as any).organizationId || (result as any).organization_id,
-            sso_provider: "scalekit",
-          },
-        });
+// if (listError) {
+//   console.error("List users error:", listError);
+// }
 
-      if (createError || !newUser.user) {
-        console.error("Error creating user:", createError);
-        return NextResponse.redirect(
-          new URL("/auth?error=Failed to create user account", request.url)
-        );
-      }
+// const existingUser = users?.users?.find(
+//   (u) => u.email === result.user.email
+// );
 
-      userId = newUser.user.id;
-    }
+// console.log("existingUser:", existingUser);
 
-    // Create a session for the user
-    const { data: sessionData, error: sessionError } =
-      await supabase.auth.admin.generateLink({
-        type: "magiclink",
-        email: result.user.email,
-      });
+//       console.log("existingUser:", existingUser);
 
-    if (sessionError || !sessionData) {
-      console.error("Error creating session:", sessionError);
-      return NextResponse.redirect(
-        new URL("/auth?error=Failed to create session", request.url)
-      );
-    }
+
+//     let userId: string;
+// console.log("STEP 1 - before user check");
+//     if (existingUser) {
+//        console.log("STEP 2 - existing user found");
+//       userId = existingUser.id;
+//        console.log("STEP 3 - userId:", userId);
+//     } else {
+//       // Create new user
+//       const { data: newUser, error: createError } =
+//         await supabase.auth.admin.createUser({
+//           email: result.user.email,
+//           email_confirm: true,
+//           user_metadata: {
+//             full_name: result.user.name,
+//             organization_id:
+//               (result as any).organizationId || (result as any).organization_id,
+//             sso_provider: "scalekit",
+//           },
+//         });
+//          console.log("STEP 3 - createUser result:", newUser);
+//   console.log("STEP 3 - createUser error:", createError);
+
+  
+
+//       if (createError || !newUser.user) {
+//         console.error("Error creating user:", createError);
+//         return NextResponse.redirect(
+//           new URL("/auth?error=Failed to create user account", request.url)
+//         );
+//       }
+
+//       userId = newUser.user.id;
+//     }
+
+//     // Create a session for the user
+//     const { data: sessionData, error: sessionError } =
+//       await supabase.auth.admin.generateLink({
+//         type: "magiclink",
+//         email: result.user.email,
+//       });
+
+//     if (sessionError || !sessionData) {
+//       console.error("Error creating session:", sessionError);
+//       return NextResponse.redirect(
+//         new URL("/auth?error=Failed to create session", request.url)
+//       );
+//     }
 
     // Redirect to the app with the session
     const response = NextResponse.redirect(new URL("/", request.url));
