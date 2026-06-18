@@ -57,13 +57,7 @@ export async function GET(request: NextRequest) {
 console.log("SERVICE KEY:", !!supabaseServiceKey);
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     console.log("Supabase initialized");
-    // Check if user exists
-    // const { data: existingUser , error: userError} = await supabase
-    //   .from("auth.users")
-    //   .select("id")
-    //   .eq("email", result.user.email)
-    //   .single();
-
+  
     const { data: users, error: listError } =
   await supabase.auth.admin.listUsers();
 
@@ -78,7 +72,7 @@ const existingUser = users?.users?.find(
 console.log("existingUser:", existingUser);
 
       console.log("existingUser:", existingUser);
-console.log("userError:", userError);
+
 
     let userId: string;
 
