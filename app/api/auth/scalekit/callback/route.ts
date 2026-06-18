@@ -137,93 +137,45 @@ if (sessionError || !sessionData) {
 
 console.log("STEP 6 - magic link generated");
 
+    // // Redirect to the app with the session
+    // const response = NextResponse.redirect(new URL("/", request.url));
 
-    // Create or update user in Supabase
-//     console.log("SUPABASE URL:", !!supabaseUrl);
-// console.log("SERVICE KEY:", !!supabaseServiceKey);
-//     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-//     console.log("Supabase initialized");
-  
-//     const { data: users, error: listError } =
-//   await supabase.auth.admin.listUsers();
+    // // Set session cookie (you may need to adjust this based on your Supabase setup)
+    // response.cookies.set(
+    //   "sb-access-token",
+    //   sessionData.properties.hashed_token,
+    //   {
+    //     httpOnly: true,
+    //     secure: process.env.NODE_ENV === "production",
+    //     sameSite: "lax",
+    //     maxAge: 60 * 60 * 24 * 7, // 7 days
+    //   }
+    // );
 
-// if (listError) {
-//   console.error("List users error:", listError);
-// }
+  if (sessionError || !sessionData) {
+  console.error("GENERATE LINK ERROR:", sessionError);
+  throw new Error("Failed to generate magic link");
+}
 
-// const existingUser = users?.users?.find(
-//   (u) => u.email === result.user.email
-// );
+console.log("STEP 6 - magic link generated");
 
-// console.log("existingUser:", existingUser);
+console.log("HASHED TOKEN:", sessionData.properties.hashed_token);
 
-//       console.log("existingUser:", existingUser);
+console.log(
+  "ACTION LINK:",
+  sessionData.properties.action_link
+);
 
+console.log(
+  "REDIRECT TO:",
+  sessionData.properties.redirect_to
+);
 
-//     let userId: string;
-// console.log("STEP 1 - before user check");
-//     if (existingUser) {
-//        console.log("STEP 2 - existing user found");
-//       userId = existingUser.id;
-//        console.log("STEP 3 - userId:", userId);
-//     } else {
-//       // Create new user
-//       const { data: newUser, error: createError } =
-//         await supabase.auth.admin.createUser({
-//           email: result.user.email,
-//           email_confirm: true,
-//           user_metadata: {
-//             full_name: result.user.name,
-//             organization_id:
-//               (result as any).organizationId || (result as any).organization_id,
-//             sso_provider: "scalekit",
-//           },
-//         });
-//          console.log("STEP 3 - createUser result:", newUser);
-//   console.log("STEP 3 - createUser error:", createError);
+return NextResponse.redirect(
+  sessionData.properties.action_link
+);
 
-  
-
-//       if (createError || !newUser.user) {
-//         console.error("Error creating user:", createError);
-//         return NextResponse.redirect(
-//           new URL("/auth?error=Failed to create user account", request.url)
-//         );
-//       }
-
-//       userId = newUser.user.id;
-//     }
-
-//     // Create a session for the user
-//     const { data: sessionData, error: sessionError } =
-//       await supabase.auth.admin.generateLink({
-//         type: "magiclink",
-//         email: result.user.email,
-//       });
-
-//     if (sessionError || !sessionData) {
-//       console.error("Error creating session:", sessionError);
-//       return NextResponse.redirect(
-//         new URL("/auth?error=Failed to create session", request.url)
-//       );
-//     }
-
-    // Redirect to the app with the session
-    const response = NextResponse.redirect(new URL("/", request.url));
-
-    // Set session cookie (you may need to adjust this based on your Supabase setup)
-    response.cookies.set(
-      "sb-access-token",
-      sessionData.properties.hashed_token,
-      {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        maxAge: 60 * 60 * 24 * 7, // 7 days
-      }
-    );
-
-    return response;
+    // return response;
   } catch (error: any) {
     console.error("Scalekit callback error:", error);
     return NextResponse.redirect(
