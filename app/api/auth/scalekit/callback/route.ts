@@ -41,7 +41,6 @@ export async function GET(request: NextRequest) {
 
     // Initialize Scalekit client
     const scalekit = new ScalekitClient(ENV_URL, CLIENT_ID, CLIENT_SECRET);
-
     // Exchange code for user info
     const redirectUri = `${request.nextUrl.origin}/api/auth/scalekit/callback`;
     const result = await scalekit.authenticateWithCode(code, redirectUri);
@@ -54,14 +53,19 @@ export async function GET(request: NextRequest) {
     });
 
     // Create or update user in Supabase
+    console.log("SUPABASE URL:", !!supabaseUrl);
+console.log("SERVICE KEY:", !!supabaseServiceKey);
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
+    console.log("Supabase initialized");
     // Check if user exists
-    const { data: existingUser } = await supabase
+    const { data: existingUser , error: userError} = await supabase
       .from("auth.users")
       .select("id")
       .eq("email", result.user.email)
       .single();
+
+      console.log("existingUser:", existingUser);
+console.log("userError:", userError);
 
     let userId: string;
 
