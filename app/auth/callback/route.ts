@@ -1,25 +1,40 @@
+
+
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { cookies } from "next/headers";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+export async function GET(request: Request) {
+  const { searchParams, origin } = new URL(request.url);
 
-export async function GET(request: NextRequest) {
-  const requestUrl = new URL(request.url);
-  const code = requestUrl.searchParams.get("code");
+  const code = searchParams.get("code");
 
-  if (code && supabaseUrl && supabaseAnonKey) {
-     const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  if (code) {
+    const cookieStore = await cookies();
 
-  const { data, error } =
-    await supabase.auth.exchangeCodeForSession(code);
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name) {
+            return cookieStore.get(name)?.value;
+          },
+          set(name, value, options) {
+            cookieStore.set(name, value, options);
+          },
+          remove(name, options) {
+            cookieStore.set(name, "", options);
+          },
+        },
+      }
+    );
 
-  console.log("EXCHANGE RESULT:", data);
-  console.log("EXCHANGE ERROR:", error);
+    const { error } =
+      await supabase.auth.exchangeCodeForSession(code);
+
+    console.log("OAuth Exchange Error:", error);
   }
 
-  // Redirect to home page after successful auth
-  return NextResponse.redirect(new URL("/", requestUrl.origin));
+  return NextResponse.redirect(`${origin}/`);
 }
-
