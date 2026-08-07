@@ -1,12 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Send, Bot, User, Sparkles } from "lucide-react"
+import { Send, Bot, User, Sparkles, Loader2 } from "lucide-react"
 
 interface Message {
   id: string
@@ -16,39 +16,79 @@ interface Message {
 }
 
 export default function ChatbotPage() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      role: "assistant",
-      content: "Hello! I'm your AI health assistant. I can help you understand your lab results, answer medical questions, and provide health information. How can I assist you today?",
-      timestamp: new Date(),
-    },
-  ])
+  const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const scrollAreaRef = useRef<HTMLDivElement>(null)
 
-  const handleSend = () => {
-    if (!input.trim()) return
+  useEffect(() => {
+    setMessages([
+      {
+        id: "1",
+        role: "assistant",
+        content: "Hello! I'm your AI health assistant. I can help you answer general medical questions, explain health concepts, and provide wellness guidance. How can I assist you today?",
+        timestamp: new Date(),
+      },
+    ])
+  }, [])
+
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight
+    }
+  }, [messages])
+
+  const handleSend = async () => {
+    const trimmed = input.trim()
+    if (!trimmed || loading) return
 
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
-      content: input,
+      content: trimmed,
       timestamp: new Date(),
     }
 
     setMessages((prev) => [...prev, userMessage])
     setInput("")
+    setLoading(true)
+    setError(null)
 
-    // Simulate AI response (in real app, this would call an API)
-    setTimeout(() => {
+    try {
+      const response = await fetch("/api/chatbot", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ question: trimmed }),
+      })
+
+      const data = await response.json()
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || data.details || "Failed to get an answer")
+      }
+
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: "I understand your question. In a production environment, this would be processed by our AI service to provide accurate medical information. For now, this is a demonstration of the chat interface.",
+        content: data.answer,
         timestamp: new Date(),
       }
       setMessages((prev) => [...prev, aiMessage])
-    }, 1000)
+    } catch (err: any) {
+      const message = err?.message || "Failed to get an answer. Please try again."
+      setError(message)
+      const aiMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: "Sorry, I couldn't fetch an answer at the moment. Please try again later.",
+        timestamp: new Date(),
+      }
+      setMessages((prev) => [...prev, aiMessage])
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -71,47 +111,47 @@ export default function ChatbotPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex-1 flex flex-col p-0">
-          <ScrollArea className="flex-1 p-6">
-            <div className="space-y-4">
+          <ScrollArea className="flex-1 p-6 min-h-0 overflow-hidden">
+            <div className="space-y-6">
               {messages.map((message) => (
                 <div
                   key={message.id}
-                  className={`flex gap-3 ${
-                    message.role === "user" ? "justify-end" : "justify-start"
+                  className={`flex items-start gap-3 ${
+                    message.role === "user" ? "flex-row-reverse" : "flex-row"
                   }`}
                 >
-                  {message.role === "assistant" && (
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-primary text-primary-foreground">
-                        <Bot className="h-4 w-4" />
-                      </AvatarFallback>
-                    </Avatar>
-                  )}
+                  <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 mt-1 shadow-sm ${
+                    message.role === "user"
+                      ? "bg-blue-600"
+                      : "bg-white border border-gray-200"
+                  }`}>
+                    {message.role === "user" ? (
+                      <User className="h-4 w-4 text-white" />
+                    ) : (
+                      <Bot className="h-4 w-4 text-blue-600" />
+                    )}
+                  </div>
+
                   <div
-                    className={`rounded-lg px-4 py-2 max-w-[80%] ${
+                    className={`max-w-[85%] rounded-2xl p-4 shadow-sm ${
                       message.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted"
+                        ? "bg-blue-600 text-white rounded-tr-sm"
+                        : "bg-white border border-gray-100 text-gray-800 rounded-tl-sm"
                     }`}
                   >
-                    <p className="text-sm">{message.content}</p>
+                    <div className="text-sm whitespace-pre-wrap leading-relaxed">
+                      {message.content}
+                    </div>
                     <p
-                      className={`text-xs mt-1 ${
+                      className={`text-[10px] mt-2 font-medium ${
                         message.role === "user"
-                          ? "text-primary-foreground/70"
-                          : "text-muted-foreground"
+                          ? "text-blue-100 text-right"
+                          : "text-gray-400 text-left"
                       }`}
                     >
-                      {message.timestamp.toLocaleTimeString()}
+                      {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                     </p>
                   </div>
-                  {message.role === "user" && (
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-secondary">
-                        <User className="h-4 w-4" />
-                      </AvatarFallback>
-                    </Avatar>
-                  )}
                 </div>
               ))}
             </div>
@@ -128,15 +168,20 @@ export default function ChatbotPage() {
                   }
                 }}
                 placeholder="Type your question here..."
+                disabled={loading}
                 className="flex-1"
               />
-              <Button onClick={handleSend} size="icon">
-                <Send className="h-4 w-4" />
+              <Button onClick={handleSend} size="icon" disabled={loading || !input.trim()}>
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              This AI assistant is for informational purposes only and does not replace professional medical advice.
-            </p>
+            {error ? (
+              <p className="text-xs text-destructive mt-2">{error}</p>
+            ) : (
+              <p className="text-xs text-muted-foreground mt-2">
+                This AI assistant is for informational purposes only and does not replace professional medical advice.
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>

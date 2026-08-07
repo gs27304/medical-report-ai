@@ -141,7 +141,7 @@ export function LabReportChat({ reportId, fileName }: LabReportChatProps) {
       <CardContent className="flex flex-col flex-1 min-h-0 p-4 bg-gray-50/30">
         <ScrollArea
           ref={scrollAreaRef}
-          className="flex-1 pr-4 mb-4"
+          className="flex-1 pr-4 mb-4 min-h-0 overflow-hidden"
           style={{ maxHeight: "400px" }}
         >
           {messages.length === 0 ? (

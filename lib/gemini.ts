@@ -314,4 +314,29 @@ Answer the patient's question now, using the raw lab report text above as your s
   const response = await result.response;
   return response.text();
 }
+
+export async function chatMedicalAdvisor(question: string): Promise<string> {
+  if (!genAI) {
+    throw new Error("Gemini client not initialized. Set GEMINI_API_KEY.");
+  }
+
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+  const prompt = `You are a responsible medical advisor helping a patient with general health questions. Answer clearly, accurately, and in plain language. Do not provide a personal diagnosis or a treatment plan. If the question is outside your scope, say so politely and recommend consulting a healthcare professional.
+
+QUESTION: ${question}
+
+GUIDELINES:
+- Keep the answer concise and patient-friendly.
+- Use simple language and avoid unnecessary medical jargon.
+- Do not provide diagnoses or prescriptions.
+- Do not claim to replace a doctor.
+- Always encourage the user to speak with a qualified healthcare provider for personalized advice.
+
+Answer the question now in plain text.`;
+
+  const result = await model.generateContent(prompt);
+  const response = await result.response;
+  return response.text();
+}
  
