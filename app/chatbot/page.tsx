@@ -15,6 +15,43 @@ interface Message {
   timestamp: Date
 }
 
+const formatChatMessage = (text: string) => {
+  const lines = text.split("\n")
+
+  const renderInlineBold = (value: string) => {
+    return value.split(/(\*\*[^*]+\*\*)/g).map((part, index) => {
+      if (part.startsWith("**") && part.endsWith("**")) {
+        return (
+          <strong key={index} className="font-semibold text-slate-900">
+            {part.slice(2, -2)}
+          </strong>
+        )
+      }
+      return <span key={index}>{part}</span>
+    })
+  }
+
+  return lines.map((line, index) => {
+    const bulletMatch = line.match(/^\s*\*\s+(.*)$/)
+    if (bulletMatch) {
+      return (
+        <div key={index} className="flex gap-2">
+          <span className="mt-1 text-base leading-none text-slate-400">•</span>
+          <span className="flex-1 break-words">
+            {renderInlineBold(bulletMatch[1])}
+          </span>
+        </div>
+      )
+    }
+
+    return (
+      <div key={index}>
+        {renderInlineBold(line)}
+      </div>
+    )
+  })
+}
+
 export default function ChatbotPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
@@ -139,8 +176,8 @@ export default function ChatbotPage() {
                         : "bg-white border border-gray-100 text-gray-800 rounded-tl-sm"
                     }`}
                   >
-                    <div className="text-sm whitespace-pre-wrap leading-relaxed">
-                      {message.content}
+                    <div className="text-sm leading-relaxed">
+                      {formatChatMessage(message.content)}
                     </div>
                     <p
                       className={`text-[10px] mt-2 font-medium ${
