@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -14,11 +13,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { User, LogOut, Settings, CreditCard, Shield } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { User, LogOut, Settings, Shield, Sparkles, Lock } from "lucide-react";
+import { User as SupabaseUser, Session } from "@supabase/supabase-js";
 
 export function UserMenu() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -27,18 +28,18 @@ export function UserMenu() {
       return;
     }
 
-    supabase.auth.getUser().then(({ data, error }: any) => {
+    supabase.auth.getUser().then(({ data, error }: { data: { user: SupabaseUser | null }; error: unknown }) => {
       if (error) {
         setUser(null);
       } else {
-        setUser(data?.user);
+        setUser(data?.user ?? null);
       }
       setLoading(false);
     });
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
+    } = supabase.auth.onAuthStateChange((_event: string, session: Session | null) => {
       setUser(session?.user ?? null);
       if (!session?.user) {
         router.push("/auth");
@@ -64,9 +65,9 @@ export function UserMenu() {
 
   if (!user) {
     return (
-      <Button 
-        variant="default" 
-        size="sm" 
+      <Button
+        variant="default"
+        size="sm"
         onClick={() => router.push("/auth")}
         className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition-all active:scale-95"
       >
@@ -76,6 +77,11 @@ export function UserMenu() {
   }
 
   const userEmail = user.email || "User";
+  const isGuest =
+    userEmail === "interviewer@demo.com" ||
+    user.user_metadata?.role === "guest" ||
+    user.user_metadata?.is_guest === true;
+
   const initials = userEmail
     .split("@")[0]
     .split(/[\._]/)
@@ -84,72 +90,100 @@ export function UserMenu() {
     .toUpperCase()
     .slice(0, 2);
 
+  const handleRestrictedAction = () => {
+    alert(
+      "Notice: Changing credentials or deleting the demo account is disabled in Interviewer Demo Mode to ensure continuous evaluation availability."
+    );
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           className="relative h-10 w-10 rounded-full p-0 hover:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 active:scale-95 transition-transform"
         >
           {/* Avatar with Ring/Border effect */}
-          <div className="h-10 w-10 rounded-full p-[2px] bg-gradient-to-tr from-blue-600 to-indigo-400">
+          <div className={`h-10 w-10 rounded-full p-[2px] ${
+            isGuest 
+              ? "bg-gradient-to-tr from-amber-500 to-indigo-600" 
+              : "bg-gradient-to-tr from-blue-600 to-indigo-400"
+          }`}>
             <Avatar className="h-full w-full border-2 border-white shadow-sm">
               <AvatarImage src={user.user_metadata?.avatar_url} alt={userEmail} />
-              <AvatarFallback className="bg-white text-blue-600 font-bold text-xs">
+              <AvatarFallback className={`bg-white font-bold text-xs ${isGuest ? "text-amber-600" : "text-blue-600"}`}>
                 {initials}
               </AvatarFallback>
             </Avatar>
           </div>
         </Button>
       </DropdownMenuTrigger>
-      
-      <DropdownMenuContent className="w-64 mt-2 p-2 shadow-xl border-gray-100 rounded-xl" align="end" forceMount>
+
+      <DropdownMenuContent
+        className="w-72 mt-2 p-2 shadow-xl border-gray-100 rounded-xl"
+        align="end"
+        forceMount
+      >
         <DropdownMenuLabel className="font-normal px-2 py-3">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
-               <User className="h-5 w-5" />
+            <div className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 ${
+              isGuest ? "bg-amber-50 text-amber-600" : "bg-blue-50 text-blue-600"
+            }`}>
+              {isGuest ? <Sparkles className="h-5 w-5" /> : <User className="h-5 w-5" />}
             </div>
-            <div className="flex flex-col space-y-0.5 overflow-hidden">
-              <p className="text-sm font-semibold text-gray-900 leading-none truncate">
-                {user.user_metadata?.full_name || "Medical User"}
-              </p>
+            <div className="flex flex-col space-y-1 overflow-hidden">
+              <div className="flex items-center gap-1.5">
+                <p className="text-sm font-semibold text-gray-900 leading-none truncate">
+                  {user.user_metadata?.full_name || (isGuest ? "Interviewer Demo" : "Medical User")}
+                </p>
+              </div>
               <p className="text-xs font-medium leading-none text-muted-foreground truncate">
                 {userEmail}
               </p>
+              {isGuest && (
+                <div className="pt-1">
+                  <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[10px] py-0 px-1.5 font-medium">
+                    Interviewer Demo Mode
+                  </Badge>
+                </div>
+              )}
             </div>
           </div>
         </DropdownMenuLabel>
-        
+
         <DropdownMenuSeparator className="mx-2 bg-gray-100" />
-        
+
         <div className="py-1">
-          <DropdownMenuItem 
-            className="rounded-lg py-2 cursor-pointer focus:bg-blue-50 focus:text-blue-700" 
-            onClick={() => router.push("/profile")}
+          <DropdownMenuItem
+            className="rounded-lg py-2 cursor-pointer focus:bg-blue-50 focus:text-blue-700"
+            onClick={() => router.push("/")}
           >
             <User className="mr-3 h-4 w-4 opacity-70" />
-            <span className="font-medium">My Profile</span>
-          </DropdownMenuItem>
-          
-          <DropdownMenuItem 
-            className="rounded-lg py-2 cursor-pointer focus:bg-blue-50 focus:text-blue-700"
-            disabled
-          >
-            <Settings className="mr-3 h-4 w-4 opacity-70" />
-            <span className="font-medium">Account Settings</span>
+            <span className="font-medium">Dashboard Overview</span>
           </DropdownMenuItem>
 
-          <DropdownMenuItem 
+          <DropdownMenuItem
             className="rounded-lg py-2 cursor-pointer focus:bg-blue-50 focus:text-blue-700"
+            onClick={isGuest ? handleRestrictedAction : () => router.push("/profile")}
+          >
+            {isGuest ? <Lock className="mr-3 h-4 w-4 text-amber-500" /> : <Settings className="mr-3 h-4 w-4 opacity-70" />}
+            <span className="font-medium">
+              {isGuest ? "Account Settings (Protected)" : "Account Settings"}
+            </span>
+          </DropdownMenuItem>
+
+          <DropdownMenuItem
+            className="rounded-lg py-2 cursor-pointer focus:bg-blue-50 focus:text-blue-700"
+            onClick={isGuest ? handleRestrictedAction : undefined}
           >
             <Shield className="mr-3 h-4 w-4 opacity-70" />
-            <span className="font-medium">Privacy</span>
+            <span className="font-medium">Privacy & Security</span>
           </DropdownMenuItem>
         </div>
 
         <DropdownMenuSeparator className="mx-2 bg-gray-100" />
-        
-        <DropdownMenuItem 
+
+        <DropdownMenuItem
           onClick={handleSignOut}
           className="rounded-lg py-2 mt-1 cursor-pointer text-red-600 focus:bg-red-50 focus:text-red-700"
         >
@@ -160,6 +194,3 @@ export function UserMenu() {
     </DropdownMenu>
   );
 }
-
-
-
